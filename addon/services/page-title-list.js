@@ -1,5 +1,4 @@
 import { A } from '@ember/array';
-import { getOwner } from '@ember/application';
 import Service from '@ember/service';
 import { set, get, computed } from '@ember/object';
 import { copy } from '@ember/object/internals';
@@ -14,7 +13,6 @@ export default Service.extend({
     this._super();
     set(this, 'tokens', A());
     set(this, 'length', 0);
-    this._removeExistingTitleTag();
   },
 
   /**
@@ -188,25 +186,5 @@ export default Service.extend({
       }
     }
     return title.join('');
-  },
-
-  /**
-   * Remove any existing title tags from the head.
-   * @private
-   */
-  _removeExistingTitleTag() {
-    if (this._hasFastboot()) {
-      return;
-    }
-
-    let titles = document.getElementsByTagName('title');
-    for (let i = 0; i < titles.length; i++) {
-      let title = titles[i];
-      title.parentNode.removeChild(title);
-    }
-  },
-
-  _hasFastboot() {
-    return !!getOwner(this).lookup('service:fastboot');
   }
 });
