@@ -1,14 +1,12 @@
 import { scheduleOnce } from '@ember/runloop';
 import { inject as service } from '@ember/service';
 import Helper from '@ember/component/helper';
-import { set, get } from '@ember/object';
+import { get } from '@ember/object';
 import { guidFor } from '@ember/object/internals';
 import { merge } from '@ember/polyfills';
 import { getOwner } from '@ember/application';
 
-function updateTitle(tokens) {
-  set(this, 'title', tokens.toString());
-}
+let _initialTitleRemoved = false;
 
 /**
   `{{page-title}}` is used to communicate with
@@ -32,7 +30,7 @@ export default Helper.extend({
     hash.id = guidFor(this);
     hash.title = params.join('');
     tokens.push(hash);
-    scheduleOnce('afterRender', get(this, 'headData'), updateTitle, tokens);
+    scheduleOnce('afterRender', this, this.updateTitle, tokens);
     return '';
   },
 
@@ -44,14 +42,29 @@ export default Helper.extend({
     let router = getOwner(this).lookup('router:main');
     let routes = router._routerMicrolib || router.router;
     let { activeTransition } = routes || {};
-    let headData = get(this, 'headData');
     if (activeTransition) {
-      activeTransition.promise.finally(function () {
-        if (headData.isDestroyed) { return; }
-        scheduleOnce('afterRender', headData, updateTitle, tokens);
+      activeTransition.promise.finally(() => {
+        if (this.get('headData.isDestroyed')) { return; }
+        scheduleOnce('afterRender', this, this.updateTitle, tokens);
       });
     } else {
-      scheduleOnce('afterRender', headData, updateTitle, tokens);
+      scheduleOnce('afterRender', this, this.updateTitle, tokens);
+    }
+  },
+
+  updateTitle(tokens) {
+    if (!_initialTitleRemoved) {
+      _initialTitleRemoved = true;
+      this.removeExistingTitleTag();
+    }
+
+    this.set('headData.title', tokens.toString());
+  },
+
+  removeExistingTitleTag() {
+    let title = document.head.querySelector('title');
+    if (title) {
+      document.head.removeChild(title);
     }
   }
 });
